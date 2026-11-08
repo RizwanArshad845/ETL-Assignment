@@ -1,0 +1,54 @@
+# Extra services started by `astro dev start` alongside Airflow.
+# They join Astro's existing "airflow" bridge network, so Airflow reaches
+# MongoDB by the hostname "mongo".
+services:
+  mongo:
+    image: mongo:7.0
+    container_name: currency-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+      MONGO_INITDB_DATABASE: currency_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db           # persistent storage
+    networks:
+      - airflow
+    labels:
+      maintainer: "Shafkhalid <shafkhalid10@gmail.com>"
+      com.currency-etl.role: "database"
+      com.currency-etl.description: "MongoDB storing transformed exchange rates"
+      com.currency-etl.version: "1.0.0"
+
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: currency-mongo-express
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+      ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/
+      ME_CONFIG_BASICAUTH: "true"
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin
+    ports:
+      - "8081:8081"
+    networks:
+      - airflow
+    labels:
+      maintainer: "Shafkhalid <shafkhalid10@gmail.com>"
+      com.currency-etl.role: "db-admin-ui"
+      com.currency-etl.description: "Mongo Express web UI for MongoDB"
+      com.currency-etl.version: "1.0.0"
+
+volumes:
+  mongo_data:
+    name: currency_mongo_data
+
+networks:
+  airflow:
+    driver: bridge
